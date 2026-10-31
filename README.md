@@ -72,7 +72,7 @@ AstrBot 在组装 system prompt 时会混入多份来源不同的文案：框架
 /purge patch     应用全部源码补丁（首次需重启生效）
 /purge unpatch   回滚全部源码补丁
 /purge on|off    开关注入（源码补丁保留）
-/purge presets   列出破甲词预设（0 = 不使用）
+/purge presets   列出预设（0 = 不使用）
 /purge use <序号|名字> 切换预设（/purge import <路径> 导入并切换）
 /purge set <内容> 新建 custom 预设并切换；/purge view 看全文；/purge clear 切到「空」
 /purge help      帮助
@@ -84,7 +84,7 @@ AstrBot 在组装 system prompt 时会混入多份来源不同的文案：框架
 
 | 项 | 说明 | 默认 |
 |---|---|---|
-| `preset_name` | 当前破甲词预设（`presets/` 里的文件名，不含扩展名） | `（空）不使用` |
+| `preset_name` | 当前预设（`presets/` 里的文件名，不含扩展名） | `（空）不使用` |
 | `enabled` | 总开关 | 开 |
 | `framework_patch_mode` | 源码补丁层 | 开 |
 | `auto_patch_on_start` | 升级后自动补打 | 开 |
@@ -97,17 +97,17 @@ AstrBot 在组装 system prompt 时会混入多份来源不同的文案：框架
 
 ## 文件位置
 
-- 预设目录：插件目录 `presets/` —— **唯一**的破甲词来源（`.md` / `.txt` / `.json`）
+- 预设目录：插件目录 `presets/` —— **唯一**的来源（`.md` / `.txt` / `.json`）
 - 没有根目录回退：名字对不上就是零注入，见下节
 - 历史遗留：`data/plugin_data/astrbot_plugin_purge/prompt-inject.md`（已不参与注入，可删）
 - 投递文件：`.framework_directives.md` / `.framework_persona.md` / `.framework_tail.md`
 - 备份：被修改的框架文件旁 `*.purge.bak`
 
-## 破甲词预设（插件页面一站式）
+## 预设（插件页面一站式）
 
-在 插件管理 → astrbot_plugin_purge 卡片 →「打开页面」→「破甲词预设管理」里完成一切：
+在 插件管理 → astrbot_plugin_purge 卡片 →「打开页面」→「预设管理」里完成一切：
 
-- 🎯 **当前破甲词预设**：下拉实时列出 `presets/` 目录里的文件；第一项「（空）不使用」＝ 零注入：头块、边界、人格段指令、尾锚全部不写。选中 → 点「保存并生效」，下一轮对话立即使用，无需重启
+- 🎯 **当前预设**：下拉实时列出 `presets/` 目录里的文件；第一项「（空）不使用」＝ 零注入：头块、边界、人格段指令、尾锚全部不写。选中 → 点「保存并生效」，下一轮对话立即使用，无需重启
 - ⚠️ **名字失效时 fail-closed**：如果配置里的预设名在 `presets/` 里找不到（被删、改名、打错），不做任何回退，直接零注入，并在下拉上方标警告、`/purge status` 写「预设文件不存在」
 - ⬆️ **上传预设文件**：`.md` / `.txt` / `.json` 可多选（点击选择或拖入），直接存进 `presets/`，下拉立刻出现，选中保存即可
 - ➕ **新建预设**：填名字 + 粘贴文本 → 点「保存」只生成预设文件并清空表单；要启用再到上方下拉选中 →「保存并生效」
@@ -119,7 +119,7 @@ AstrBot 在组装 system prompt 时会混入多份来源不同的文案：框架
 
 ```
 /purge presets          列出预设（0 是「空」）
-/purge use 0            不用破甲词
+/purge use 0            不用
 /purge use 2            用第 2 套
 /purge import <路径>     从文件导入为新预设并切换
 /purge set <文本>        新建/覆盖 custom.md 预设并切换
