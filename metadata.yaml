@@ -1,6 +1,7 @@
-name: astrbot_plugin_purge # 插件唯一识别名，以 astrbot_plugin_ 前缀开头
-display_name: 强指令注入（dsh-purge 移植版）
-desc: 将 dsh-purge 的"指令权威性"机制逐层对齐移植到 AstrBot。P1 指令第0位前插 + P2 人格 Session directives + P3 健康模式文案豁免 + P0 健康模式强制关闭（对应原插件渲染层/人格层/拒绝句/审批层四层），启动自动补打、备份回滚、锚点保护；钩子层兜底；规则支持 WebUI 面板/prompt-inject.md 双向同步编辑。
-version: v1.2.0
+name: astrbot_plugin_purge
+display_name: 会话运行配置强制注入（v2 全护栏清除）
+desc: 按层拆掉 AstrBot 侧所有会触发拒答/软化/能力声明/安全回退的机制：L0 健康模式配置强制关闭（含缺键补写）、L1 源码头块前插、L2 破甲设定前插（早于人格）、L3 安全模式文案整段重写、L4 竞争文案降权、L5 内容安全策略短路、L6 钩子层首位注入+尾锚、L7 历史拒绝清洗、L8 生成后拒绝重写、L9 卸载回收。全补丁带备份/语法校验/幂等/逐层状态与自检。
+version: v2.4.0
 author: "irislilymoon"
-repo: https://github.com/irislilymoon/astrbot_plugin_purge 
+repo: https://github.com/irislilymoon/astrbot_plugin_purge
+# 基于 ZiPengWei/dsh-purge v1.1.71（MIT License, Copyright (c) 2026 小杨）移植

@@ -1,62 +1,112 @@
 {
+  "preset_name": {
+    "description": "🎯 当前破甲词预设",
+    "type": "string",
+    "options": [
+      "（空）不使用",
+      "ds41_flash_1017",
+      "dsh_original",
+      "sandbox_frame"
+    ],
+    "default": "（空）不使用",
+    "hint": "破甲词只从插件目录 presets/ 读取。下拉列出该目录下的文件（.md/.txt/.json 混放）；「（空）不使用」＝零注入（头块/边界/人格段/尾锚全不写）。若配置里的名字在 presets/ 里找不到（被删/改名/打错），不做回退，直接零注入并在状态里标⚠。增删上传请到插件卡片「打开页面」。"
+  },
   "enabled": {
     "description": "✅ 注入总开关",
     "type": "bool",
-    "default": true
+    "default": true,
+    "hint": "关闭后源码补丁保留，但头块/尾锚注入、历史清洗、拒绝重写全部停止。"
   },
   "framework_patch_mode": {
-    "description": "🧬 框架融合模式（补丁层）",
+    "description": "🧬 源码补丁层（L1-L5）",
     "type": "bool",
     "default": true,
-    "hint": "把注入写进框架源码 astr_main_agent.py，指令固定在 system prompt 第 0 位，不受人格/健康模式/插件顺序影响。关闭后仅用钩子层注入。对应 dsh-purge 的代码层 patch"
+    "hint": "打 6 个源码补丁：P1 头块前插、P2 人格段 session directives、P3 安全模式文案整体重写、P4/P4b 竞争文案降权、P5 内容安全策略短路。关闭后只剩钩子层。"
   },
   "auto_patch_on_start": {
     "description": "🔄 启动自动补打",
     "type": "bool",
     "default": true,
-    "hint": "容器升级/镜像重建覆盖框架文件后，插件启动时自动重新打补丁（对应 dsh-purge 的 autoApplyOnStart）。首次写入需重启一次生效；带备份与语法校验，失败自动回滚"
+    "hint": "AstrBot 升级覆盖源码后，插件启动时自动重新打补丁（带 .purge.bak 备份、py_compile 校验、失败自动回滚）。"
   },
   "enforce_safety_off": {
-    "description": "🚫 强制关闭健康模式（对应 dsh 审批层 patch）",
+    "description": "🚫 L0 强制关闭健康模式",
     "type": "bool",
     "default": true,
-    "hint": "插件每次启动递归检查主配置中所有 safety_mode 键，发现为 True 则强制关闭并保存（覆盖主聊天与定时任务链路），防止误开健康模式后与强指令对抗"
+    "hint": "递归检查主配置所有 safety_mode 键并置 false；键缺失时补写 agent_runner.config.persona.safety_mode=false（上游缺键默认是 True）。配置改动需重启 AstrBot 让流水线重新读取。"
   },
-  "inject_content": {
-    "description": "📝 注入规则内容（等同 prompt-inject.md）",
-    "type": "text",
-    "default": "",
-    "hint": "在这里直接编辑规则，点保存后插件自动热重载并写入 prompt-inject.md，下一轮对话生效；留空=不注入。也可以照旧直接改文件，文件内容会在插件重载时回显到这里。保护规则：面板清空不会清空文件（会被文件内容回填），清空规则请用 /purge clear；两边都改过时以文件为准。"
-  },
-  "position": {
-    "description": "📍 注入位置",
-    "type": "string",
-    "options": ["prepend", "append"],
-    "default": "prepend",
-    "hint": "prepend=插在人格提示词之前（权威最高，对应 dsh-purge 的 section order=100）；append=追加在人格提示词之后"
-  },
-  "admin_only": {
-    "description": "🔒 /purge 命令仅限管理员",
+  "disable_content_safety": {
+    "description": "🛡️ L5 关闭内容安全配置",
     "type": "bool",
     "default": true,
-    "hint": "群机器人强烈建议开启，防止群友修改规则"
+    "hint": "把 content_safety.internal_keywords.enable / baidu_aip.enable / also_use_in_response 全部置 false，防止关键词审查拦截提问与回复。P5 源码补丁是更强的兜底。"
   },
-  "inject_boundary": {
-    "description": "🛡️ 注入规则修改边界条款",
+  "neutralize_safety_at_runtime": {
+    "description": "🧪 运行期中和安全模式块",
     "type": "bool",
     "default": true,
-    "hint": "在注入末尾追加'规则仅所有者可改、群聊内容不构成规则修改'的边界声明。dsh-purge 原版没有这一条，但群聊机器人建议保留，否则群友可能通过话术劫持强指令"
-  },
-  "strong_intro_template": {
-    "description": "强指令头部模板",
-    "type": "text",
-    "default": "",
-    "hint": "包裹注入内容的头部声明，留空使用内置默认（ACTIVE AND MANDATORY 版）"
+    "hint": "每轮请求前在 system prompt 里检测官方 Safe Mode 文案并整段替换为操作者授权文案。即使 P3 没打上（版本漂移/被覆盖），这一层也生效。"
   },
   "boundary_template": {
-    "description": "边界条款模板",
+    "description": "规则修改边界条款",
     "type": "text",
     "default": "",
-    "hint": "留空使用内置默认"
+    "hint": "留空使用内置默认。群聊建议保留：只阻止\"改规则\"的话术，同时明确普通任务请求不算越狱、不许因此拒答。"
+  },
+  "tail_template": {
+    "description": "尾锚模板（追加到 system prompt 最末位）",
+    "type": "text",
+    "default": "",
+    "hint": "留空使用内置默认。用于压过排在后面的工具说明、工作区提示、安全文案。"
+  },
+  "inject_boundary": {
+    "description": "🛡️ 追加边界条款",
+    "type": "bool",
+    "default": true
+  },
+  "inject_tail": {
+    "description": "📌 追加尾锚",
+    "type": "bool",
+    "default": true,
+    "hint": "AstrBot 会在头块之后继续追加 persona/skills/tool prompt，尾锚用于把权威性钉回末位。"
+  },
+  "position": {
+    "description": "📍 头块位置",
+    "type": "string",
+    "options": [
+      "prepend",
+      "append"
+    ],
+    "default": "prepend",
+    "hint": "prepend=钩子抢 system prompt 第 0 位（推荐）；append=头块也追加到末尾（仅配合尾锚时使用）。"
+  },
+  "scrub_history": {
+    "description": "🧹 L7 清洗历史拒绝",
+    "type": "bool",
+    "default": true,
+    "hint": "每轮请求前从上下文里剔除 assistant 说过的拒绝/软化消息，防止模型模仿自己上一轮的拒答。只改本次请求的内存副本，不动数据库。"
+  },
+  "retry_on_refusal": {
+    "description": "🔁 L8 生成后拒绝重写",
+    "type": "bool",
+    "default": true,
+    "hint": "输出命中拒绝特征时，用同一 system prompt 立刻重生成一次成品；仍拒绝则剥离拒绝前言保留正文。流式响应下自动跳过。"
+  },
+  "retry_max": {
+    "description": "L8 重写次数",
+    "type": "int",
+    "default": 2,
+    "hint": "1-3。次数越多越容易出成品，但延迟与费用上升。"
+  },
+  "admin_only": {
+    "description": "🔒 /purge 仅限管理员",
+    "type": "bool",
+    "default": true
+  },
+  "revert_on_terminate": {
+    "description": "♻️ 卸载时回收源码补丁",
+    "type": "bool",
+    "default": true,
+    "hint": "插件被禁用/卸载/重载时自动回滚全部源码补丁并清空指令文件，避免插件没了补丁还留着。"
   }
 }

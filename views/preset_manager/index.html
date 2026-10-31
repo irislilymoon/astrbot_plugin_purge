@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>破甲词预设管理</title>
+<style>
+  :root {
+    --bg: #f5f6fa; --card: #ffffff; --text: #1f2430; --muted: #7a8194;
+    --line: #e3e6ee; --accent: #5b6cff; --accent-weak: #eceeff;
+    --ok: #1d9e6f; --ok-weak: #e3f7ef; --warn: #b7791f; --warn-weak: #fdf3e0;
+    --danger: #d64545; --danger-weak: #fdecec; --shadow: 0 1px 3px rgba(20,24,40,.08);
+  }
+  body.dark,
+  html[data-theme="dark"] body {
+    --bg: #171a23; --card: #20242f; --text: #e7eaf2; --muted: #9aa2b5;
+    --line: #2e3442; --accent: #7d8cff; --accent-weak: #2b2f4d;
+    --ok: #4cc79a; --ok-weak: #1d3329; --warn: #e0b25c; --warn-weak: #3a3122;
+    --danger: #ef7070; --danger-weak: #3d2323; --shadow: 0 1px 3px rgba(0,0,0,.35);
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font: 14px/1.6 -apple-system, "Segoe UI", "Microsoft YaHei", sans-serif;
+    padding: 18px 16px 40px;
+  }
+  .wrap { max-width: 760px; margin: 0 auto; }
+  h1 { font-size: 19px; margin: 0 0 4px; }
+  .sub { color: var(--muted); font-size: 12.5px; margin: 0 0 16px; word-break: break-all; }
+  .card {
+    background: var(--card); border: 1px solid var(--line); border-radius: 12px;
+    padding: 16px 18px; margin-bottom: 14px; box-shadow: var(--shadow);
+  }
+  .card h2 { font-size: 15px; margin: 0 0 10px; display: flex; align-items: center; gap: 8px; }
+  .row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+  select, input[type="text"], textarea {
+    background: var(--bg); color: var(--text); border: 1px solid var(--line);
+    border-radius: 8px; padding: 8px 10px; font: inherit; outline: none; width: 100%;
+  }
+  select:focus, input:focus, textarea:focus { border-color: var(--accent); }
+  select { flex: 1 1 260px; width: auto; }
+  textarea { resize: vertical; min-height: 130px; }
+  button {
+    border: 0; border-radius: 8px; padding: 8px 16px; font: inherit; cursor: pointer;
+    background: var(--accent-weak); color: var(--accent); transition: filter .15s, opacity .15s;
+  }
+  button:hover { filter: brightness(.96); }
+  button:disabled { opacity: .45; cursor: not-allowed; }
+  button.primary { background: var(--accent); color: #fff; }
+  button.ghost { background: transparent; border: 1px solid var(--line); color: var(--muted); }
+  button.danger { background: var(--danger-weak); color: var(--danger); padding: 4px 10px; font-size: 12.5px; }
+  .hint { color: var(--muted); font-size: 12.5px; margin: 8px 0 0; }
+  .hint.ok { color: var(--ok); }
+  .hint.warn { color: var(--warn); }
+  ul.files { list-style: none; margin: 0; padding: 0; }
+  ul.files li {
+    display: flex; align-items: center; gap: 10px; padding: 9px 2px;
+    border-bottom: 1px dashed var(--line);
+  }
+  ul.files li:last-child { border-bottom: 0; }
+  .fname { font-weight: 600; word-break: break-all; }
+  .fmeta { color: var(--muted); font-size: 12px; white-space: nowrap; }
+  .badge {
+    font-size: 11.5px; border-radius: 999px; padding: 1px 9px; white-space: nowrap;
+    background: var(--ok-weak); color: var(--ok);
+  }
+  .badge.off { background: var(--warn-weak); color: var(--warn); }
+  .spacer { flex: 1; }
+  .empty { color: var(--muted); font-size: 13px; padding: 6px 0; }
+  .drop {
+    border: 1.5px dashed var(--line); border-radius: 10px; padding: 18px;
+    text-align: center; color: var(--muted); cursor: pointer; transition: all .15s;
+  }
+  .drop:hover, .drop.over { border-color: var(--accent); color: var(--accent); background: var(--accent-weak); }
+  #toasts { position: fixed; right: 16px; bottom: 16px; display: flex; flex-direction: column; gap: 8px; z-index: 9; }
+  .toast {
+    background: var(--card); border: 1px solid var(--line); border-left: 4px solid var(--accent);
+    border-radius: 8px; box-shadow: var(--shadow); padding: 10px 14px; max-width: 340px;
+    font-size: 13px; animation: pop .18s ease-out;
+  }
+  .toast.ok { border-left-color: var(--ok); }
+  .toast.err { border-left-color: var(--danger); }
+  @keyframes pop { from { transform: translateY(8px); opacity: 0; } to { transform: none; opacity: 1; } }
+  .fatal { background: var(--danger-weak); color: var(--danger); border-radius: 10px; padding: 14px 16px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>🧩 破甲词预设管理</h1>
+  <p class="sub" id="sub">正在连接面板…</p>
+
+  <div class="card">
+    <h2>🎯 当前破甲词预设</h2>
+    <div class="row">
+      <select id="sel"></select>
+      <button class="primary" id="btnApply" disabled>保存并生效</button>
+    </div>
+    <p class="hint" id="selHint"></p>
+    <p class="hint">上传 / 新建 / 删除都会实时反映到这个下拉框：选中想要的预设 → 点「保存并生效」，下一轮对话立即使用，无需重启、无需再点别的保存。</p>
+  </div>
+
+  <div class="card">
+    <h2>📂 预设文件 <span class="spacer"></span><span class="fmeta" id="dirInfo"></span></h2>
+    <ul class="files" id="fileList"></ul>
+    <p class="hint">「当前生效」标记 = 正在使用的预设。删除当前预设会自动回到「（空）不使用」。</p>
+  </div>
+
+  <div class="card">
+    <h2>⬆️ 上传预设文件</h2>
+    <div class="drop" id="drop">点击选择或把文件拖到这里<br><span style="font-size:12px">支持 .md / .txt / .json，可多选，直接存进 presets 目录</span></div>
+    <input type="file" id="fileInput" multiple accept=".md,.txt,.json" hidden>
+  </div>
+
+  <div class="card">
+    <h2>➕ 新建预设</h2>
+    <div class="row" style="margin-bottom:10px">
+      <input type="text" id="npName" placeholder="预设名字（可不含扩展名，默认存为 .md）">
+    </div>
+    <textarea id="npText" placeholder="把破甲词全文粘贴到这里…"></textarea>
+    <div class="row" style="margin-top:10px">
+      <button class="primary" id="btnCreate">保存</button>
+      <button class="ghost" id="btnClear">清空</button>
+      <span class="hint" style="margin:0">「保存」只生成预设文件并清空本表单；启用请到上方下拉选择 →「保存并生效」。</span>
+    </div>
+  </div>
+</div>
+<div id="toasts"></div>
+
+<script src="/api/plugin/page/bridge-sdk.js"></script>
+<script>
+(function () {
+  "use strict";
+  var B = window.AstrBotPluginView || window.AstrBotPluginPage;
+  var el = function (id) { return document.getElementById(id); };
+  var sel = el("sel"), selHint = el("selHint"), btnApply = el("btnApply");
+  var fileList = el("fileList"), dirInfo = el("dirInfo"), sub = el("sub");
+  var drop = el("drop"), fileInput = el("fileInput");
+  var npName = el("npName"), npText = el("npText");
+  var server = null;        // 最近一次 /presets/list 的 data
+  var pendingName = null;   // 下拉里已选、还没「保存并生效」的名字
+  var lastJson = "";
+  var creating = false, applying = false, uploading = false;
+
+  function toast(msg, kind) {
+    var box = el("toasts");
+    var t = document.createElement("div");
+    t.className = "toast" + (kind ? " " + kind : "");
+    t.textContent = msg;
+    box.appendChild(t);
+    setTimeout(function () { t.style.opacity = "0"; t.style.transition = "opacity .3s"; }, 3200);
+    setTimeout(function () { t.remove(); }, 3600);
+  }
+
+  function fail(e, fallback) {
+    var msg = (e && e.message) ? e.message : String(e || fallback);
+    if (msg.indexOf("未找到该路由") >= 0) {
+      msg = "插件 API 还没注册——请先重载插件：插件管理 → astrbot_plugin_purge → 菜单 → 重载插件";
+    }
+    toast(msg || fallback, "err");
+  }
+
+  var warnedShape = false;
+  // 兼容不同 bridge 构建的返回值处理：直接业务 JSON / {status,data} 信封都能拿到业务字段
+  function unwrap(d) {
+    var hops = 0;
+    while (d && typeof d === "object" && !Array.isArray(d) && hops < 3) {
+      if (typeof d.presets !== "undefined" || typeof d.current !== "undefined"
+        || typeof d.uploaded !== "undefined" || typeof d.name !== "undefined"
+        || typeof d.deleted !== "undefined" || typeof d.label !== "undefined") {
+        return d;
+      }
+      if (d.data && typeof d.data === "object") { d = d.data; hops += 1; continue; }
+      break;
+    }
+    return (d && typeof d === "object" && !Array.isArray(d)) ? d : {};
+  }
+
+  function markShape(d) {
+    if (typeof d.presets === "undefined" && !warnedShape) {
+      warnedShape = true;
+      try { console.warn("[purge panel] unexpected payload:", d); } catch (e2) { /* ignore */ }
+      var why = (d && d.message) ? ("：" + d.message) : "（已按空列表显示，把这条截图给开发者）";
+      sub.textContent += " · ⚠ 面板返回数据格式异常" + why;
+    }
+  }
+
+  // 面板 API 走 HTTP 200 返回 {status:"error",message} 时要当失败处理，否则只会显示空列表
+  function checkErr(d) {
+    if (d && d.status === "error") {
+      throw new Error(d.message || "面板接口返回错误");
+    }
+    return d;
+  }
+
+  function fmtSize(n) {
+    if (n < 1024) return n + " B";
+    if (n < 1024 * 1024) return (n / 1024).toFixed(1) + " KB";
+    return (n / 1024 / 1024).toFixed(2) + " MB";
+  }
+
+  function optionList(d) {
+    var names = [d.empty_label || "（空）不使用"];
+    (Array.isArray(d.presets) ? d.presets : []).forEach(function (p) { names.push(p.name); });
+    return names;
+  }
+
+  function render(raw) {
+    var d = unwrap(raw);
+    server = d;
+    var presets = Array.isArray(d.presets) ? d.presets : [];
+    var current = d.current || d.empty_label || "（空）不使用"; // 空值归一化成「（空）不使用」
+    sub.textContent = "目录 " + (d.dir || "(未知)") + " · 列表每 2 秒自动刷新" +
+      (d.enabled !== false ? "" : " · ⚠️ 注入总开关当前是关闭的（面板「注入总开关」）");
+    markShape(d);
+
+    // —— 下拉框 ——
+    var names = optionList(d);
+    if (pendingName && names.indexOf(pendingName) < 0) {
+      pendingName = null; // 选项被外部删掉了
+    }
+    var want = pendingName || current;
+    sel.innerHTML = "";
+    names.forEach(function (n) {
+      var o = document.createElement("option");
+      o.value = n;
+      var cur = (n === current);
+      o.textContent = n + (cur ? "　✓ 当前生效" : "");
+      sel.appendChild(o);
+    });
+    sel.value = names.indexOf(want) >= 0 ? want : current;
+
+    // —— 状态行 / 按钮 ——
+    if (pendingName && pendingName !== current) {
+      selHint.textContent = "已选「" + pendingName + "」，还没保存——点「保存并生效」后立即使用。";
+      selHint.className = "hint warn";
+      btnApply.disabled = false;
+    } else if (d.current_missing) {
+      selHint.textContent = "⚠ 配置里的预设「" + current + "」在 presets 目录里不存在：当前是零注入。重新选一个 → 「保存并生效」。";
+      selHint.className = "hint warn";
+      btnApply.disabled = true;
+    } else if (d.injecting === false && d.current_state === "empty") {
+      selHint.textContent = "当前生效：「（空）不使用」——破甲词、边界、人格段、尾锚全部不注入。";
+      selHint.className = "hint";
+      btnApply.disabled = true;
+    } else {
+      selHint.textContent = "当前生效：" + current + "。下拉选别的再点「保存并生效」即可切换。";
+      selHint.className = "hint";
+      btnApply.disabled = true;
+    }
+
+    // —— 文件列表 ——
+    dirInfo.textContent = presets.length + " 个文件";
+    fileList.innerHTML = "";
+    if (!presets.length) {
+      var li0 = document.createElement("li");
+      li0.className = "empty";
+      li0.textContent = "presets 目录还没有预设文件——上传或新建一个吧。";
+      fileList.appendChild(li0);
+    }
+    presets.forEach(function (p) {
+      var li = document.createElement("li");
+      var name = document.createElement("span");
+      name.className = "fname";
+      name.textContent = p.name;
+      var cur = (p.name === current);
+      var badge = document.createElement("span");
+      badge.className = "badge" + (cur ? "" : " off");
+      badge.textContent = cur ? "当前生效" : "未启用";
+      var meta = document.createElement("span");
+      meta.className = "fmeta";
+      meta.textContent = p.file + " · " + fmtSize(p.size);
+      var sp = document.createElement("span");
+      sp.className = "spacer";
+      var del = document.createElement("button");
+      del.className = "danger";
+      del.textContent = "删除";
+      del.addEventListener("click", function () { delPreset(p.name); });
+      li.appendChild(name);
+      li.appendChild(badge);
+      li.appendChild(meta);
+      li.appendChild(sp);
+      li.appendChild(del);
+      fileList.appendChild(li);
+    });
+  }
+
+  function load() {
+    return B.apiGet("presets/list").then(function (raw) {
+      var d = checkErr(unwrap(raw));
+      var json = JSON.stringify(d);
+      if (json !== lastJson) {
+        lastJson = json;
+        render(d);
+      }
+      return d;
+    });
+  }
+
+  function applyPreset() {
+    if (applying) return;
+    var name = sel.value;
+    applying = true;
+    btnApply.disabled = true;
+    B.apiPost("presets/select", { name: name })
+      .then(function (raw) {
+        var d = checkErr(unwrap(raw));
+        pendingName = null;
+        lastJson = "";
+        toast("✅ 已切换到「" + (d.label || d.current || name) + "」，下一轮对话生效", "ok");
+        return load();
+      })
+      .catch(function (e) { fail(e); return load(); })
+      .finally(function () { applying = false; });
+  }
+
+  function delPreset(name) {
+    if (!window.confirm("删除预设「" + name + "」？文件会从 presets 目录里删掉，不可恢复。")) return;
+    B.apiPost("presets/delete", { name: name })
+      .then(function (raw) {
+        var d = checkErr(unwrap(raw));
+        if (pendingName === name) pendingName = null;
+        toast("🗑️ 已删除「" + (d.deleted || name) + "」" + (d.reset ? "，当前预设已回到「（空）不使用」" : ""), "ok");
+        lastJson = "";
+        return load();
+      })
+      .catch(function (e) { fail(e); });
+  }
+
+  function uploadFiles(list) {
+    var files = Array.prototype.slice.call(list || []);
+    if (!files.length || uploading) return;
+    uploading = true;
+    var okNames = [], errs = [];
+    var chain = Promise.resolve();
+    files.forEach(function (f) {
+      chain = chain.then(function () {
+        return B.upload("presets/upload", f).then(function (raw) {
+          var d = checkErr(unwrap(raw));
+          (d.uploaded || []).forEach(function (n) { okNames.push(n); });
+          (d.errors || []).forEach(function (m) { errs.push(m); });
+        });
+      });
+    });
+    chain
+      .then(function () {
+        if (okNames.length) {
+          toast("✅ 已上传：" + okNames.join("、") + "，下拉框里可以直接选", "ok");
+          pendingName = okNames[okNames.length - 1]; // 方便用户直接点保存
+        }
+        if (errs.length) toast(errs.join("；"), "err");
+        lastJson = "";
+        return load();
+      })
+      .catch(function (e) { fail(e); return load(); })
+      .finally(function () { uploading = false; });
+  }
+
+  function createPreset() {
+    if (creating) return;
+    var name = npName.value.trim();
+    var text = npText.value;
+    if (!name) { toast("先填预设名字", "err"); return; }
+    if (!text.trim()) { toast("先粘贴预设内容", "err"); return; }
+    creating = true;
+    B.apiPost("presets/create", { name: name, text: text })
+      .then(function (raw) {
+        var d = checkErr(unwrap(raw));
+        var made = d.name || name;
+        toast("✅ 预设「" + made + "」已保存到 presets 目录，去上方下拉选中它 →「保存并生效」", "ok");
+        npName.value = "";
+        npText.value = "";
+        pendingName = made;
+        lastJson = "";
+        return load();
+      })
+      .catch(function (e) { fail(e); })
+      .finally(function () { creating = false; });
+  }
+
+  function start(bridge) {
+    B = bridge;
+    // ready() 8 秒没回来多半是没从面板 iframe 里打开
+    var timeout = setTimeout(function () {
+      sub.textContent = "连接面板超时：请从插件管理 → astrbot_plugin_purge 卡片 →「打开页面」进入本页。";
+    }, 8000);
+    B.ready().then(function (ctx) {
+      clearTimeout(timeout);
+      if (ctx && ctx.isDark) document.body.classList.add("dark");
+      sel.addEventListener("change", function () {
+        pendingName = (sel.value && sel.value !== (server && server.current)) ? sel.value : null;
+        if (server) render(server);
+      });
+      btnApply.addEventListener("click", applyPreset);
+      drop.addEventListener("click", function () { fileInput.click(); });
+      fileInput.addEventListener("change", function () {
+        uploadFiles(fileInput.files);
+        fileInput.value = "";
+      });
+      ["dragover", "dragenter"].forEach(function (ev) {
+        drop.addEventListener(ev, function (e) { e.preventDefault(); drop.classList.add("over"); });
+      });
+      ["dragleave", "drop"].forEach(function (ev) {
+        drop.addEventListener(ev, function (e) { e.preventDefault(); drop.classList.remove("over"); });
+      });
+      drop.addEventListener("drop", function (e) {
+        if (e.dataTransfer && e.dataTransfer.files) uploadFiles(e.dataTransfer.files);
+      });
+      el("btnCreate").addEventListener("click", createPreset);
+      el("btnClear").addEventListener("click", function () { npName.value = ""; npText.value = ""; });
+      load().catch(function (e) { fail(e, "面板加载失败"); });
+      setInterval(function () { load().catch(function () {}); }, 2000);
+    });
+  }
+
+  // AstrBot 是把桥接 SDK 追加在本页脚本之后加载的，必须等它出现再初始化
+  function waitForBridge() {
+    var tries = 0;
+    var timer = setInterval(function () {
+      var b = window.AstrBotPluginView || window.AstrBotPluginPage;
+      if (b && typeof b.ready === "function") {
+        clearInterval(timer);
+        start(b);
+        return;
+      }
+      tries += 1;
+      if (tries >= 150) { // 30 秒还没有 = 大概率不是从面板里打开的
+        clearInterval(timer);
+        sub.textContent = "未能连上面板：请从插件管理 → astrbot_plugin_purge 卡片 →「打开页面」进入本页。";
+      }
+    }, 200);
+  }
+
+  waitForBridge();
+})();
+</script>
+</body>
+</html>
